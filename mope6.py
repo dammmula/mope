@@ -5,6 +5,7 @@ from itertools import compress
 from scipy.stats import f, t
 import numpy
 from functools import reduce
+from datetime import datetime
 
 x1min, x2min, x3min = 20, 25, 25  # задані значення Xmin
 x1max, x2max, x3max = 70, 65, 35  # задані значення Xmax
@@ -110,14 +111,18 @@ def find_coefficients(factors, y_vals): # знаходження коефіці�
 
 
 def cochran_criteria(m, N, y_table): # критерій Кохрена
+
     def get_cochran_value(f1, f2, q):
+
         partResult1 = q / f2
         params = [partResult1, f1, (f2 - 1) * f1]
         fisher = f.isf(*params)
         result = fisher / (fisher + (f2 - 1))
         return Decimal(result).quantize(Decimal('.0001')).__float__()
 
+
     print("Перевірка рівномірності дисперсій за критерієм Кохрена: m = {}, N = {}".format(m, N))
+    start_time1 = datetime.now()
     y_variations = [numpy.var(i) for i in y_table]
     max_y_variation = max(y_variations)
     gp = max_y_variation / sum(y_variations)
@@ -127,8 +132,11 @@ def cochran_criteria(m, N, y_table): # критерій Кохрена
     q = 1 - p  # рівень значимості
     gt = get_cochran_value(f1, f2, q) # табличне значення коефіцієнта Кохрена
     print("Gp = {}; Gt = {}; f1 = {}; f2 = {}; q = {:.2f}".format(gp, gt, f1, f2, q))
+
     if gp < gt:
         print("Gp < Gt => дисперсії рівномірні - все правильно")
+        print("Час виконання перевірки: %s секунд" % (datetime.now() - start_time1))
+
         return True
     else:
         print("Gp > Gt => дисперсії нерівномірні - треба ще експериментів")
@@ -140,6 +148,7 @@ def student_criteria(m, N, y_table, beta_coefficients): # критерій Ст'
         return Decimal(abs(t.ppf(q / 2, f3))).quantize(Decimal('.0001')).__float__()
 
     print("\nПеревірка значимості коефіцієнтів регресії за критерієм Стьюдента: m = {}, N = {} ".format(m, N))
+    start_time2 = datetime.now()
     average_variation = numpy.average(list(map(numpy.var, y_table)))
     x_i = set_factors_table(natural_plan)
     variation_beta_s = average_variation / N / m
@@ -149,6 +158,7 @@ def student_criteria(m, N, y_table, beta_coefficients): # критерій Ст'
     q = 0.05 # рівень значимості (1-р)
     t_our = get_student_value(f3, q) # табличне значення критерія Ст'юдента
     importance = [True if el > t_our else False for el in list(t_i)]
+
     print("Оцінки коефіцієнтів βs: " + ", ".join(list(map(lambda x: str(round(float(x), 3)), beta_coefficients))))
     print("Коефіцієнти ts:         " + ", ".join(list(map(lambda i: "{:.2f}".format(i), t_i))))
     print("f3 = {}; q = {}; tтабл = {}".format(f3, q, t_our))
@@ -156,6 +166,7 @@ def student_criteria(m, N, y_table, beta_coefficients): # критерій Ст'
     importance_to_print = ["важливий" if i else "неважливий" for i in importance]
     to_print = map(lambda x: x[0] + " " + x[1], zip(beta_i, importance_to_print))
     print(*to_print, sep="; ")
+    print("Час виконання перевірки: %s секунд" % (datetime.now() - start_time2))
     print_equation(beta_coefficients, importance)
     return importance
 
@@ -164,6 +175,7 @@ def fisher_criteria(m, N, d, x_table, y_table, b_coefficients, importance): # к
     def get_fisher_value(f3, f4, q):
         return Decimal(abs(f.isf(q, f4, f3))).quantize(Decimal('.0001')).__float__()
 
+    start_time = datetime.now()
     f3 = (m - 1) * N # число степенів свободи
     f4 = N - d
     q = 0.05 # рівень значимості
@@ -181,6 +193,8 @@ def fisher_criteria(m, N, d, x_table, y_table, b_coefficients, importance): # к
     print("\n".join(["{arr[0]}: y = {arr[1]}".format(arr=el) for el in theoretical_values_to_print]))
     print("Fp = {}, Ft = {}".format(f_p, f_t))
     print("Fp < Ft => модель адекватна" if f_p < f_t else "Fp > Ft => модель неадекватна")
+
+    print("Час виконання перевірки: %s секунд" % (datetime.now() - start_time))
     return True if f_p < f_t else False
 
 
