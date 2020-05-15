@@ -29,7 +29,7 @@ def regression(x, b):
 
 
 def plan_matrix5(n, m):
-    print(f'\nГереруємо матрицю планування для n = {n}, m = {m}')
+    print(f'\nГенеруємо матрицю планування для n = {n}, m = {m}')
 
     y = np.zeros(shape=(n, m))
     for i in range(n):
